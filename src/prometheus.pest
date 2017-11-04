@@ -1,0 +1,42 @@
+payload = _{ soi ~ lines ~ eoi }
+
+lines = _{ line ~ ((newline | whitespace)+ ~ line)* ~ (newline | whitespace)* }
+line = _{ (directive | sample) }
+
+prm_type_keyword = _{ "TYPE" }
+directive = _{ "#" ~ ( (prm_type_keyword ~ type_directive)
+                     | plain_directive) }
+type_directive = { prm_literal ~ prm_type}
+plain_directive = _{ (!newline ~ any)* }
+
+sample = { prm_literal ~ labels? ~ float ~ integer? }
+
+labels = _{ "{" ~ label ~ ("," ~ label)* ~ "}" }
+label = @{ prm_literal ~ "=" ~ string }
+
+string = @{ "\"" ~ (escape | !("\"" | "\\") ~ any)* ~ "\"" }
+escape  = @{ "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
+unicode = @{ "u" ~ hex ~ hex ~ hex ~ hex }
+hex     = { '0'..'9' | 'a'..'f' | 'A'..'F' }
+
+prm_literal = @{ ('a'..'z' | 'A' .. 'Z' | "_")+ }
+prm_type = _{ prm_type_counter
+            | prm_type_gauge
+            | prm_type_histogram
+            | prm_type_summary
+            | prm_type_untyped }
+prm_type_counter = @{ ^"counter" }
+prm_type_gauge = @{ ^"gauge" }
+prm_type_histogram = @{ ^"histogram" }
+prm_type_summary = @{ ^"summary" }
+prm_type_untyped = @{ ^"untyped" }
+
+float   = @{ "+Inf" | "NaN" | "-Inf" | (("+" | "-")? ~ int ~ ("." ~ digits ~ exp? | exp)?) }
+integer = @{ ("+" | "-")? ~ int }
+int     = @{ "0" | ('1'..'9' ~ digits?) }
+digits  = @{ (digit | ("_" ~ digit))+ }
+digit   =  { '0'..'9' }
+exp     = @{ ("E" | "e") ~ ("+" | "-")? ~ int }
+
+newline    = _{ "\n" | "\r\n" }
+whitespace = _{ " " | "\t" }
